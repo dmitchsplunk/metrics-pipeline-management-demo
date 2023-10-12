@@ -1,6 +1,16 @@
 from random import randint
 from time import sleep
 from uuid import uuid4
+
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import (
+   ConsoleMetricExporter,
+   PeriodicExportingMetricReader,
+)
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
+
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import (
@@ -18,32 +28,41 @@ provider.add_span_processor(processor)
 trace.set_tracer_provider(provider)
 
 # Creates a tracer from the global tracer provider
-tracer = trace.get_tracer("mytracer")
+tracer = trace.get_tracer("order-service")
 
+metric_reader = PeriodicExportingMetricReader(OTLPMetricExporter())
+provider = MeterProvider(metric_readers=[metric_reader])
+
+metrics.set_meter_provider(provider)
+meter = metrics.get_meter("my.meter.name")
+
+order_counter = meter.create_counter(
+   "order.counter", unit="1", description="Counts the number of orders processed"
+)
 
 def process_orders():
 
-    for x in range(100000):
+    for x in range(10000):
         process_order()
-        # wait for 100ms before processing another order
-        sleep(0.1)
 
     return
 
 
 def process_order():
-    with tracer.start_as_current_span("process_order") as span:
-        current_span = trace.get_current_span()
 
-        customer_type = get_customer_type()
-        user_id = get_user_id()
-        payment_type = get_payment_type()
+    customer_type = get_customer_type()
+    user_id = get_user_id()
+    payment_type = get_payment_type()
 
-        current_span.set_attribute("customerType", customer_type)
-        current_span.set_attribute("userId", user_id)
-        current_span.set_attribute("paymentType", payment_type)
+    print("Processing order with customerType: {}, userId: {}, paymentType: {}".format(customer_type, user_id, payment_type))
+    # wait for 100ms before processing another order
+    sleep(0.1)
 
-        print("Processing order with customerType: {}, userId: {}, paymentType: {}".format(customer_type, user_id, payment_type))
+    order_counter.add(1, {
+        "customer.type": customer_type,
+        "user.id": user_id,
+        "payment.type": payment_type
+    })
 
     return
 

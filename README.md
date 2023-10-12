@@ -1,5 +1,9 @@
 # metrics-pipeline-management-demo
 
+This application generates metrics using OpenTelemetry that illustrate the high-cardinality problem. 
+
+Specifically, the metrics include a userId, which has thousand of different combinations, thus causing high cardinality. 
+
 Prerequisites: 
 
 - Python 3.x
