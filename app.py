@@ -42,7 +42,7 @@ order_counter = meter.create_counter(
 
 def process_orders():
 
-    for x in range(10000):
+    for x in range(5000):
         process_order()
 
     return
